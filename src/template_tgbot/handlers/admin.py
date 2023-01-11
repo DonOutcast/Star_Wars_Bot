@@ -1,0 +1,16 @@
+from aiogram import Router
+from aiogram.filters import CommandStart
+from aiogram.fsm.state import State
+from aiogram.types import Message
+
+from template_tgbot.filters.admin import AdminFilter
+
+admin_router = Router()
+admin_router.message.filter(AdminFilter())
+
+
+@admin_router.message(CommandStart())
+async def admin_start(message: Message):
+    await message.reply("Что там!")
+
+
