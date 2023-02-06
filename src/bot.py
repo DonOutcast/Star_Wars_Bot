@@ -11,7 +11,13 @@ from template_tgbot.handlers.user import user_router
 from template_tgbot.middlewares.config import ConfigMiddleware
 from template_tgbot.services import broadcaster
 from template_tgbot.utils import set_bot_commands
-from template_tgbot.database import db
+
+
+from template_tgbot.database import base
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
+from sqlalchemy.orm import sessionmaker
+from template_tgbot.middlewares.database import DatabaseMiddleware
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +51,18 @@ async def main():
         dp.include_router(router)
 
     register_global_middlewares(dp, config)
-    await set_bot_commands.set_default_commands(bot)
-    await on_startup(bot, config.tg_bot.admin_ids)
-    await dp.start_polling(bot)
 
+    engine: AsyncEngine = create_async_engine(
+        f'postgresql+asyncpg://{config.db.user}:{config.db.password}@{config.db.host}/'
+        f'{config.db.database}', echo=False, future=True)
+    db_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    dp.message.middleware(DatabaseMiddleware(db_session))
+    try:
+        await set_bot_commands.set_default_commands(bot)
+        await on_startup(bot, config.tg_bot.admin_ids)
+        await dp.start_polling(bot)
+    finally:
+        await engine.dispose()
 
 if __name__ == '__main__':
     try:

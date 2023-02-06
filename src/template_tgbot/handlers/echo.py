@@ -2,7 +2,8 @@ import aiogram
 from aiogram import types, Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.markdown import hcode
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.template_tgbot.database.api.gateways import get_games_by_id
 echo_router = Router()
 
 # @echo_router.message(aiogram.F)
@@ -10,16 +11,16 @@ echo_router = Router()
 #     await message.answer(text=message.json())
 
 @echo_router.message(F.text)
-async def bot_echo(message: types.Message):
+async def bot_echo(message: types.Message, session: AsyncSession):
     text = [
         "Ехо без стану.",
         "Повідомлення:",
         message.text
     ]
-
+    user = await get_games_by_id(session=session, user_id=message.chat.id)
+    if user:
+        await message.answer(f"Hi, {user}")
     await message.answer('\n'.join(text))
-    await message.answer_photo("AgACAgIAAxkBAAMMY76zCyLEDC6F2r2hUN1rYx3eUmcAAmbFMRuWmPlJBA5dZn-DNR8BAAMCAANzAAMtBA")
-    print(message.from_user.id)
 
 
 @echo_router.message(F.text)
